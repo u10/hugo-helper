@@ -1,0 +1,4 @@
+export const SET_EXPLORER_DATA = 'SET_EXPLORER_DATA'
+export const OPEN_FILE = 'OPEN_FILE'
+export const CLOSE_FILE = 'CLOSE_FILE'
+export const SET_SELECTED_EDITOR = 'SET_SELECTED_EDITOR'
