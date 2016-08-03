@@ -11,7 +11,7 @@
     "pty.js": "^0.3.1"
   },
   "version": "0.0.1",
-  "name": "HugoHelper",
+  "name": "hugo-helper",
   "description": "This is a Hugo helper WebApp use Vue.js",
   "author": "vaniship"
 }
