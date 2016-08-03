@@ -280,6 +280,8 @@
 <style>
   @import "../../node_modules/sweetalert/dist/sweetalert.css";
   html, body {
+    padding: 0;
+    margin: 0;
     height: 100%;
   }
 
