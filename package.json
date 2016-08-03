@@ -4,7 +4,7 @@
   "description": "This is a Hugo helper WebApp use Vue.js",
   "repository": "vaniship/hugo-helper",
   "author": "vaniship",
-  "license": "",
+  "license": "MIT",
   "private": false,
   "files": [
     "dist/bin",
