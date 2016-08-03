@@ -27,7 +27,7 @@ cd hugo-helper
 
 npm install
 
-npm coffee
+npm run coffee
 
 # start server
 ./bin/hh
