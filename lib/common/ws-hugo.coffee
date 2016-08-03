@@ -14,7 +14,7 @@ module.exports =
         hugo = pty.spawn paths.bin('hugo'),
           '-p 1313 -t hugo-vaniship-theme -w server'.split(' '),
           name: 'hugo',
-          cwd: process.cwd(),
+#          cwd: process.cwd(),
           env: process.env
         hugo.on 'data', (data) ->
           ms.emit 'hugo.console', data

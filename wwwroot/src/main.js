@@ -1,15 +1,9 @@
-import 'pure-css'
-
 import './lib/polyfills'
 import Vue from 'vue'
 import App from './App'
 import './i18n'
 import Router from 'vue-router'
 import Editor from 'components/Editor'
-// import Sortable from 'vue-sortable'
-// Vue.use(Sortable)
-// import MintUI from 'mint-ui'
-// Vue.use(MintUI)
 Vue.use(Router)
 const router = new Router({abstract: false})
 router.map({
