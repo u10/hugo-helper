@@ -8,7 +8,7 @@ module.exports =
   install: (ms, socket) ->
     start = (conf) ->
       if hugo
-        ms.emit 'hugo.console', 'hugo already started.'
+        ms.emit 'hugo.console', 'hugo already started.\n'
       else
         lastConf = conf
         hugo = pty.spawn paths.bin('hugo'),
@@ -16,6 +16,9 @@ module.exports =
           name: 'hugo',
 #          cwd: process.cwd(),
           env: process.env
+        hugo.on 'exit', (code) ->
+          ms.emit 'hugo.console', "hugo stopped(ExitCode:#{code}).\n"
+          return
         hugo.on 'data', (data) ->
           ms.emit 'hugo.console', data
           console.log data
@@ -26,6 +29,8 @@ module.exports =
       if hugo
         hugo.destroy()
         hugo = null
+      else
+        ms.emit 'hugo.console', "hugo already stopped.\n"
       return
 
     socket
