@@ -3,25 +3,9 @@ import Vue from 'vue'
 import App from './App'
 import './i18n'
 import Router from 'vue-router'
-import Editor from 'components/Editor'
+
 Vue.use(Router)
-const router = new Router({abstract: false})
-router.map({
-  '/': {
-    component: {
-      template: '<p>Default</p>'
-    }
-  },
-  '/editor': {
-    name: 'editor',
-    component: Editor
-  }
-})
-
-router.beforeEach(function (transition) {
-  transition.next()
-})
-
+const router = new Router()
 router.start(App, 'app')
 
 let lang = /(?:\?|&)lang=(\w+)(?:$|&)/.exec(window.location.search)
