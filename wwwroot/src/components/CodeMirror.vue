@@ -78,7 +78,7 @@
         }
       },
       setMode (mode) {
-        mode = mode || (CodeMirror.findModeByFileName(this.data.title) || {mode: null}).mode
+        mode = mode || (CodeMirror.findModeByFileName(this.data.path) || {mode: null}).mode
         console.log(mode)
         this.codemirror.setOption('mode', mode)
       },
@@ -104,7 +104,7 @@
       data: Object
     },
     watch: {
-      'data.title' () {
+      'data.path' () {
         this.setMode()
       },
       'data.content' () {
@@ -121,6 +121,7 @@
   .CodeMirror {
     border: 1px solid #eee;
     height: 100%;
+    z-index: 0;
   }
 
   .cm-matchhighlight {
