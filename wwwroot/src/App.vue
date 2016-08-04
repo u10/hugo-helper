@@ -1,8 +1,19 @@
 <template>
   <x-frame :content="currentView" :gutter-size="5">
-    <menu slot="menu" :model="mainMenu" @menu-click="mainMenuClick"></menu>
-    <tree class="border" slot="left" :menu="treeMenu.data" :data="window.explorer.data" @menu-click="treeMenuClick" @item-dblclick="treeItemDblClick"></tree>
-    <router-view slot="right" v-ref:router-view @save="onSave"></router-view>
+    <menu slot="menu"
+          :model="mainMenu"
+          @menu-click="mainMenuClick"></menu>
+    <tree class="border"
+          slot="left"
+          :menu="treeMenu.data"
+          :data="window.explorer.data"
+          @menu-click="treeMenuClick"
+          @item-dblclick="treeItemDblClick"></tree>
+    <component slot="right"
+               :is="rightView"
+               v-ref:right-view
+               :content-provider="contentProvider"
+               @save="onSave"></component>
     <console slot="bottom" :id="'hugo'"></console>
     <state slot="state"></state>
   </x-frame>
@@ -15,13 +26,13 @@
   import {setExplorerData} from './vuex/actions'
   import $ from 'jquery'
   import XFrame from './components/XFrame'
+  import Editor from './components/Editor'
   import Menu from './components/Menu'
   import Console from './components/Console'
   import State from './components/State'
   import Tree from './components/Tree'
   import {Base64} from 'js-base64'
-  import swal from 'sweetalert'
-
+  import swal from './lib/vue-sweetalert'
   export default {
     store,
     vuex: {
@@ -34,15 +45,17 @@
     },
     data () {
       return {
+        rightView: '',
+        projectPath: '.',
         mainMenu: [
           {
             name: '文件',
             items: {
-              new: {
-                name: '新建'
+              create_site: {
+                name: '新建站点'
               },
-              open: {
-                name: '打开'
+              open_site: {
+                name: '打开站点'
               }
             }
           },
@@ -88,7 +101,7 @@
           data (node) {
             const data = node.original
             return {
-              get: {
+              open: {
                 label: '查看',
                 _disabled: data.type === '+'
               },
@@ -106,8 +119,15 @@
         }
       }
     },
-    computed: {},
     methods: {
+      contentProvider (path, done) {
+        $.ajax({
+          url: '/cli/file/' + encodeURIComponent('get -p ' + path),
+          success (ret) {
+            done(ret.data)
+          }
+        })
+      },
       onSave (data) {
         $.ajax({
           url: '/cli/file/' + encodeURIComponent(`set -p ${data.path} -d ${Base64.encode(data.draft)}`),
@@ -125,6 +145,9 @@
       treeMenuClick (evt) {
         const self = this
         switch (evt.action) {
+          case 'open':
+            this.openFile(evt.jstree.get_path(evt.node).join('/'))
+            break
           case 'add':
             swal({
               title: '新建文件',
@@ -141,13 +164,7 @@
                   url: '/cli/file/' + encodeURIComponent(`add -p ${path}/${filename}`)
                 }).done(function (data) {
                   swal('创建成功', '文件创建成功!', 'success')
-                  self.$router.replace({
-                    name: 'editor',
-                    query: {
-                      title: filename,
-                      path: `${path}/${filename}`
-                    }
-                  })
+                  self.openFile(`${path}/${filename}`)
                   self.refreshTree()
                 }).error(function (data) {
                   swal.showInputError('创建文件失败.')
@@ -174,6 +191,7 @@
                     url: '/cli/file/' + encodeURIComponent(`rename -p ${path}/${oldFileName} -d ${path}/${filename}`)
                   }).done(function (data) {
                     swal('重命名成功', '文件重命名成功!', 'success')
+                    self.renameFile(`${path}/${oldFileName}`, `${path}/${filename}`)
                     self.refreshTree()
                   }).error(function (data) {
                     swal.showInputError('重命名文件失败.')
@@ -197,7 +215,7 @@
                   url: '/cli/file/' + encodeURIComponent(`del -p ${path}`)
                 }).done(function (data) {
                   swal('删除成功', '文件删除成功!', 'success')
-                  self.$broadcast('cmd-close', path)
+                  self.closeFile(path)
                   self.refreshTree()
                 }).error(function (data) {
                   swal('删除成功', '文件删除失败!', 'error')
@@ -238,24 +256,40 @@
       treeItemDblClick (evt) {
         const data = evt.data
         if (data.type !== '+') {
-          const paths = evt.jstree.get_path(evt.node)
-          const path = paths.join('/')
-          this.$router.replace({
-            name: 'editor',
-            query: {
-              title: data.text,
-              path: path
-            }
-          })
+          this.openFile(evt.jstree.get_path(evt.node).join('/'))
         }
       },
-      refreshTree () {
+      refreshTree (projectPath) {
+        if (projectPath && (projectPath !== this.projectPath)) {
+          this.projectPath = projectPath
+        }
         const self = this
         $.ajax({
-          url: '/cli/dir/' + encodeURIComponent('list -d 2'),
+          url: '/cli/dir/' + encodeURIComponent(`list -p ${this.projectPath} -d 32`),
           success (data) {
             self.setExplorerData(data.data)
           }
+        })
+      },
+      openFile (path) {
+        this.rightView = 'Editor'
+        const self = this
+        this.$nextTick(function () {
+          self.$refs.rightView.open(path)
+        })
+      },
+      renameFile (oldPath, newPath) {
+        this.rightView = 'Editor'
+        const self = this
+        this.$nextTick(function () {
+          self.$refs.rightView.rename(oldPath, newPath)
+        })
+      },
+      closeFile (path) {
+        this.rightView = 'Editor'
+        const self = this
+        this.$nextTick(function () {
+          self.$refs.rightView.close(path)
         })
       }
     },
@@ -270,6 +304,7 @@
     components: {
       XFrame,
       Menu,
+      Editor,
       Console,
       State,
       Tree
@@ -278,7 +313,6 @@
 </script>
 
 <style>
-  @import "../../node_modules/sweetalert/dist/sweetalert.css";
   html, body {
     padding: 0;
     margin: 0;
