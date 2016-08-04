@@ -1,16 +1,18 @@
 <template>
   <div class="flex v-flex fill">
     <div handle=".drag-handle" style="overflow-x: scroll">
-      <div v-for="item in editor.data" class="drag-handle">
-        <div @click="switchTo($index)" :class="(editor.selected[0]===$index)?'tab tab-selected':'tab'">
-          {{item.title}} <span v-if="isChange(item)">*</span> <span class="btn-close" @click="close($index)">X</span>
+      <div v-for="editor in editors" class="drag-handle">
+        <div @click="switchTo($index)" :class="(selected===$index)?'tab tab-selected':'tab'">
+          {{editor.path | filename}}
+          <span v-if="editor.draft !== null && (editor.draft !== editor.content)">*</span>
+          <span class="btn-close" @click="close($index)">X</span>
         </div>
       </div>
     </div>
     <div class="flex-box">
       <div class="flex-ctrl margin-s">
         <div class="flex-content">
-          <component :is="currentView" :data="editor.data[editor.selected[0]]" v-ref:content></component>
+          <component :is="currentView" :data="editors[selected]" v-ref:content></component>
         </div>
       </div>
     </div>
@@ -18,101 +20,109 @@
 </template>
 
 <script>
-  import $ from 'jquery'
   import _ from 'lodash'
   import CodeMirror from './CodeMirror'
   import UnknownFile from './UnknownFile'
   import Empty from './Empty'
-  import {editor} from '../vuex/getters'
-  import {setSelectedEditor, openFile, closeFile} from '../vuex/actions'
 
-  function getComponentType (data) {
-    if (data) {
-      const title = data.title
-      if (/\.(html|htm|json|js|css|md|toml)$/i.test(title)) {
-        return 'CodeMirror'
-      } else {
-        return 'UnknownFile'
-      }
+  function getComponentType (path) {
+    if (/\.(html|xml|json|js|css|md|toml)$/i.test(path)) {
+      return 'CodeMirror'
     } else {
-      return 'Empty'
+      return 'UnknownFile'
+    }
+  }
+
+  function getIndex (editors, id) {
+    let index
+    if (_.isNumber(id)) {
+      index = id
+    } else if (_.isString(id)) {
+      index = _.findIndex(editors, function (item) {
+        return item.path === id
+      })
+    } else if (_.isObject(id)) {
+      index = _.indexOf(editors, id)
+    }
+    return index
+  }
+
+  function getFileName (path) {
+    const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
+    if (index === -1) {
+      return path
+    } else {
+      return path.substr(index + 1)
     }
   }
 
   export default {
-    route: {
-      data () {
-        if (this.$route.query.path) {
-          this.open({
-            title: this.$route.query.title,
-            path: this.$route.query.path
-          })
-        }
-        this.$router.replace({name: 'editor'})
-      }
+    props: {
+      contentProvider: Function
     },
-    vuex: {
-      getters: {
-        editor
-      },
-      actions: {
-        setSelectedEditor,
-        openFile,
-        closeFile
+    data () {
+      return {
+        editors: [],
+        selected: -1
       }
-    },
-    ready () {
-      const self = this
-      this.$on('cmd-close', function (path) {
-        self.close(path)
-      })
     },
     computed: {
       currentView () {
-        return getComponentType(this.editor.data[this.editor.selected[0]])
+        if (this.editors.length === 0) {
+          return 'Empty'
+        } else {
+          return getComponentType(this.editors[this.selected].path)
+        }
       }
     },
     methods: {
-      isChange (data) {
-        return data.draft !== null && (data.draft !== data.content)
-      },
-      switchTo (index) {
-        this.setSelectedEditor(index)
-        this.focus()
-      },
-      close (index) {
-        if (_.isUndefined(index)) {
-          index = this.editor.data[this.editor.selected[0]]
-        } else if (_.isString(index)) {
-          index = _.findIndex(this.editor.data, function (item) {
-            return item.path === index
-          })
+      switchTo (id) {
+        const index = getIndex(this.editors, id)
+        if (index === -1) {
+          return false
         }
-        if (index >= 0) {
-          this.closeFile(index)
+        this.selected = index
+        this.focus()
+        return true
+      },
+      open (path) {
+        if (this.switchTo(path)) {
+          return
+        }
+        const componentType = getComponentType(path)
+        if (componentType !== 'UnknownFile') {
+          const self = this
+          this.contentProvider(path, function (content) {
+            self.editors.push({
+              path: path,
+              content: content,
+              draft: null
+            })
+            self.selected = self.editors.length - 1
+            self.focus()
+          })
+        } else {
+          this.editors.push({
+            path: path
+          })
+          this.selected = this.editors.length - 1
           this.focus()
         }
       },
-      open (file) {
-        const componentType = getComponentType(file)
-        if (componentType !== 'UnknownFile') {
-          const self = this
-          $.ajax({
-            url: '/cli/file/' + encodeURIComponent('get -p ' + file.path),
-            success (ret) {
-              self.openFile({
-                title: file.title,
-                path: file.path,
-                content: ret.data,
-                draft: null
-              })
-            }
-          })
-        } else {
-          this.openFile({
-            title: file.title,
-            path: file.path
-          })
+      rename (oldPath, newPath) {
+        const index = getIndex(this.editors, oldPath)
+        if (index >= 0) {
+          this.editors[index].path = newPath
+        }
+      },
+      close (id) {
+        const index = getIndex(this.editors, id || this.selected)
+        if (index >= 0) {
+          this.editors.splice(index, 1)
+          if (this.selected === this.editors.length) {
+            this.selected = this.editors.length - 1
+          }
+          this.focus()
         }
       },
       focus () {
@@ -123,6 +133,11 @@
       CodeMirror,
       UnknownFile,
       Empty
+    },
+    filters: {
+      filename (path) {
+        return getFileName(path)
+      }
     }
   }
 </script>
