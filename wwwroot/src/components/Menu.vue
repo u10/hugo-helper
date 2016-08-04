@@ -18,18 +18,9 @@
         selector: '.top-menu-item',
         trigger: 'left',
         appendTo: this.$el,
-        zIndex: Number.MAX_SAFE_INTEGER,
         position (opt, x, y) {
           const $el = opt.$trigger
           opt.$menu.css({top: $el.offset().top + $el.height(), left: $el.offset().left - 5})
-        },
-        events: {
-          show: function (opt) {
-            opt.$trigger.addClass('top-menu-item-hover')
-          },
-          hide: function (opt) {
-            opt.$trigger.removeClass('top-menu-item-hover')
-          }
         },
         build ($trigger, e) {
           return {
@@ -59,7 +50,7 @@
     color: white;
   }
 
-  .top-menu-item-hover {
+  .context-menu-active {
     background: #2980b9;
     color: white;
   }
