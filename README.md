@@ -4,13 +4,13 @@ hugo helper
 ## Install
 
 ```bash
-npm install -g vaniship/hugo-helper
+npm install -g u10/hugo-helper
 hh
 ```
 
 ## Build
 ```bash
-git clone https://github.com/vaniship/hugo-helper.git
+git clone https://github.com/u10/hugo-helper.git
 
 cd hugo-helper
 
@@ -21,7 +21,7 @@ npm run build
 
 ## Development
 ```bash
-git clone https://github.com/vaniship/hugo-helper.git
+git clone https://github.com/u10/hugo-helper.git
 
 cd hugo-helper
 
