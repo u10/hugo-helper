@@ -29,7 +29,7 @@ module.exports =
       if stats.isDirectory()
         node.push obj =
           text: dir
-          type: '+'
+          type: '.'
           children: []
         if deep - 2 < maxDeep
           for file in fse.readdirSync(filePath)
