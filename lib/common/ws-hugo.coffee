@@ -12,7 +12,7 @@ module.exports =
       else
         lastConf = conf
         hugo = pty.spawn paths.bin('hugo'),
-          '-p 1313 -t hugo-vaniship-theme -w server'.split(' '),
+          '--buildDrafts --watch server'.split(' '),
           name: 'hugo',
 #          cwd: process.cwd(),
           env: process.env
