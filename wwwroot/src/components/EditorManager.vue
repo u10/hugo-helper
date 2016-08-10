@@ -12,7 +12,7 @@
     <div class="flex-box">
       <div class="flex-ctrl margin-s">
         <div class="flex-content">
-          <component :is="currentView" :data="editors[selected]" v-ref:content></component>
+          <component :is="currentView || 'Default'" :data="editors[selected]" v-ref:content></component>
         </div>
       </div>
     </div>
@@ -21,17 +21,6 @@
 
 <script>
   import _ from 'lodash'
-  import CodeMirror from './CodeMirror'
-  import UnknownFile from './UnknownFile'
-  import Empty from './Empty'
-
-  function getComponentType (path) {
-    if (/\.(html|xml|json|js|css|md|toml)$/i.test(path)) {
-      return 'CodeMirror'
-    } else {
-      return 'UnknownFile'
-    }
-  }
 
   function getIndex (editors, id) {
     let index
@@ -56,26 +45,44 @@
     }
   }
 
+  function defaultTemplate (msg) {
+    return `<div style="height: 100%; display: flex; align-items: center"><p style="width: 100%;text-align: center;color: grey">${msg}</p></div>`
+  }
+
+  function safeCall () {
+    let [method, obj, ...args] = arguments
+    if (obj && _.isString(method)) {
+      method = obj[method]
+    }
+    if (_.isFunction(method)) {
+      method.apply(obj, args)
+    }
+  }
+
   export default {
-    props: {
-      contentProvider: Function
-    },
     data () {
       return {
         editors: [],
         selected: -1
       }
     },
+    ready () {
+      const self = this
+      this.$on('save', function (data) {
+        safeCall('doSave', self, data)
+      })
+    },
     computed: {
       currentView () {
         if (this.editors.length === 0) {
           return 'Empty'
         } else {
-          return getComponentType(this.editors[this.selected].path)
+          return this.getComponentType(this.editors[this.selected].path)
         }
       }
     },
     methods: {
+      getComponentType () {},
       switchTo (id) {
         const index = getIndex(this.editors, id)
         if (index === -1) {
@@ -85,29 +92,26 @@
         this.focus()
         return true
       },
+      undo () {
+        safeCall('undo', this.$refs.content)
+      },
+      redo () {
+        safeCall('redo', this.$refs.content)
+      },
       open (path) {
         if (this.switchTo(path)) {
           return
         }
-        const componentType = getComponentType(path)
-        if (componentType !== 'UnknownFile') {
-          const self = this
-          this.contentProvider(path, function (content) {
-            self.editors.push({
-              path: path,
-              content: content,
-              draft: null
-            })
-            self.selected = self.editors.length - 1
-            self.focus()
+        const self = this
+        this.getContent(path, function (content) {
+          self.editors.push({
+            path: path,
+            content: content,
+            draft: null
           })
-        } else {
-          this.editors.push({
-            path: path
-          })
-          this.selected = this.editors.length - 1
-          this.focus()
-        }
+          self.selected = self.editors.length - 1
+          self.focus()
+        })
       },
       rename (oldPath, newPath) {
         const index = getIndex(this.editors, oldPath)
@@ -125,14 +129,20 @@
           this.focus()
         }
       },
+      save () {
+        safeCall('save', this.$refs.content)
+      },
       focus () {
-        this.$refs.content.focus()
+        safeCall('focus', this.$refs.content)
       }
     },
     components: {
-      CodeMirror,
-      UnknownFile,
-      Empty
+      Default: {
+        template: defaultTemplate('Unknown File.')
+      },
+      Empty: {
+        template: defaultTemplate('No File Opened.')
+      }
     },
     filters: {
       filename (path) {
@@ -142,8 +152,7 @@
   }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+<style>
   .drag-handle {
     display: inline-block;
     text-align: center;
