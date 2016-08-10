@@ -15,7 +15,6 @@ module.exports = {
     port: 8080,
     proxyTable: {
       '/cli':'http://localhost:3000',
-      '/static':'http://localhost:3000',
       '/socket.io':'ws://localhost:3000'
     }
   }
