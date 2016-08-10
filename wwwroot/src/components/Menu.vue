@@ -1,6 +1,6 @@
 <template>
   <div class="menu-container">
-    <div v-for="menu in model" class="top-menu-item" style="display: inline-block" :data-index="$index">{{menu.name}}</div>
+    <div v-for="menu in menus" class="top-menu-item" style="display: inline-block" :data-index="$index">{{menu.name}}</div>
   </div>
 </template>
 
@@ -9,9 +9,6 @@
   import 'jquery-contextmenu'
 
   export default {
-    props: {
-      model: Array
-    },
     ready () {
       const self = this
       $.contextMenu({
@@ -25,9 +22,9 @@
         build ($trigger, e) {
           return {
             callback (key, opt) {
-              self.$dispatch('menu-click', key, opt)
+              self.menuClick(key, opt)
             },
-            items: self.model[$trigger.data('index')].items
+            items: self.menus[$trigger.data('index')].items
           }
         }
       })
@@ -35,7 +32,6 @@
   }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
   @import "../../../node_modules/jquery-contextmenu/dist/jquery.contextMenu.css";
 
