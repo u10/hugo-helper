@@ -7,51 +7,33 @@
 <script>
   import _ from 'lodash'
   import CodeMirror from 'codemirror'
-  import '../../../node_modules/codemirror/addon/search/search'
-  import '../../../node_modules/codemirror/addon/search/match-highlighter'
-  import '../../../node_modules/codemirror/addon/dialog/dialog.css'
-  import '../../../node_modules/codemirror/mode/meta'
-  import '../../../node_modules/codemirror/mode/htmlmixed/htmlmixed'
-  import '../../../node_modules/codemirror/mode/gfm/gfm'
-  import '../../../node_modules/codemirror/mode/toml/toml'
+
+  const defaultConfig = {
+    lineNumbers: true
+  }
 
   export default {
     ready () {
       const self = this
-      const codemirror = this.codemirror = CodeMirror.fromTextArea(this.$els.codemirror, {
-        lineNumbers: true,
-        extraKeys: {
-          'Alt-F': 'findPersistent'
-        },
-        highlightSelectionMatches: {
-          showToken: /\w/,
-          annotateScrollbar: true
-        }
-      })
-      codemirror.on('change', function (codemirror) {
+      const codemirror = this.codemirror = CodeMirror.fromTextArea(
+        this.$els.codemirror,
+        _.defaults(this.getConfig(), defaultConfig)
+      )
+      codemirror.on('change', function (cm) {
         if (self.data) {
-          self.data.draft = codemirror.getValue()
+          self.data.draft = cm.getValue()
         }
       })
-      codemirror.on('scroll', function (codemirror) {
+      codemirror.on('scroll', function (cm) {
         if (self.data) {
-          self.data.cursor = _.extend(self.data.cursor || {}, codemirror.getScrollInfo())
+          self.data.cursor = _.extend(self.data.cursor || {}, cm.getScrollInfo())
         }
       })
-      codemirror.on('blur', function (codemirror) {
-        if (self.data && codemirror.getCursor() !== 0) {
-          self.data.cursor = _.extend(self.data.cursor || {}, codemirror.getCursor())
-          self.data.history = codemirror.getHistory()
+      codemirror.on('blur', function (cm) {
+        if (self.data && cm.getCursor() !== 0) {
+          self.data.cursor = _.extend(self.data.cursor || {}, cm.getCursor())
+          self.data.history = cm.getHistory()
         }
-      })
-      this.$on('cmd-undo', function () {
-        codemirror.undo()
-      })
-      this.$on('cmd-redo', function () {
-        codemirror.redo()
-      })
-      this.$on('cmd-save', function () {
-        self.save()
       })
       this.reload()
       this.setMode()
@@ -61,6 +43,12 @@
       this.focus()
     },
     methods: {
+      undo () {
+        this.codemirror.undo()
+      },
+      redo () {
+        this.codemirror.redo()
+      },
       reload () {
         const data = this.data
         const codemirror = this.codemirror
@@ -77,10 +65,15 @@
           }
         }
       },
+      getMode (path) {
+        let mode = null
+        if (_.isFunction(CodeMirror.findModeByFileName)) {
+          mode = (CodeMirror.findModeByFileName(path) || {mode: null}).mode
+        }
+        return mode
+      },
       setMode (mode) {
-        mode = mode || (CodeMirror.findModeByFileName(this.data.path) || {mode: null}).mode
-        console.log(mode)
-        this.codemirror.setOption('mode', mode)
+        this.codemirror.setOption('mode', mode || this.getMode(this.data.path))
       },
       focus () {
         if (this.codemirror) {
@@ -114,7 +107,6 @@
   }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
   @import '../../../node_modules/codemirror/lib/codemirror.css';
 
@@ -122,13 +114,5 @@
     border: 1px solid #eee;
     height: 100%;
     z-index: 0;
-  }
-
-  .cm-matchhighlight {
-    background-color: lightgreen
-  }
-
-  .CodeMirror-selection-highlight-scrollbar {
-    background-color: green
   }
 </style>
