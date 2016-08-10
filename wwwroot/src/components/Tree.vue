@@ -15,8 +15,18 @@
 </template>
 
 <script>
+  import _ from 'lodash'
   import $ from 'jquery'
   import 'jstree'
+  function safeCall () {
+    let [method, obj, ...args] = arguments
+    if (obj && _.isString(method)) {
+      method = obj[method]
+    }
+    if (_.isFunction(method)) {
+      method.apply(obj, args)
+    }
+  }
   export default {
     props: {
       data: Array,
@@ -32,7 +42,7 @@
       const jstree = this.jstree = $(this.$els.jstree)
         .on('activate_node.jstree', function (event, obj) {
           const node = obj.node
-          self.$dispatch('item-click', {
+          safeCall('itemClick', self, {
             srcEvt: event,
             data: node.original,
             node,
@@ -41,7 +51,7 @@
         })
         .on('select_node.jstree', function (event, obj) {
           const node = obj.node
-          self.$dispatch('item-select', {
+          safeCall('itemSelect', self, {
             srcEvt: event,
             data: node.original,
             node,
@@ -50,41 +60,31 @@
         })
         .on('dblclick.jstree', function (event) {
           const node = self.jstree.get_node(event.target)
-          self.$dispatch('item-dblclick', {
+          safeCall('itemDblClick', self, {
             srcEvt: event,
             data: node.original,
             node,
             jstree
           })
         })
-        .jstree({
+        .jstree(_.extend({
           core: {
             data: this.data
-          },
-          contextmenu: {
-            items (node, cb) {
-              const menus = self.menu(node)
-              for (let action in menus) {
-                let menu = menus[action]
-                menu.action = function () {
-                  self.$dispatch('menu-click', {
-                    action: action,
-                    data: node.original,
-                    node: node,
-                    jstree
-                  })
-                }
-              }
-              return menus
-            }
-          },
-          plugins: ['search', 'contextmenu']
-        })
+          }
+        }, this.getConfig()))
         .jstree()
+    },
+    methods: {
+      getConfig () {},
+      refresh (data) {
+        this.data = data
+      }
     },
     watch: {
       keyword (val) {
-        this.jstree.search(val)
+        if (_.isFunction(this.jstree.search)) {
+          this.jstree.search(val)
+        }
       },
       data (val) {
         this.jstree.settings.core.data = val
@@ -94,7 +94,6 @@
   }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
   @import "../../../node_modules/jstree/dist/themes/default/style.css";
 </style>
