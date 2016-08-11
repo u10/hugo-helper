@@ -24,10 +24,20 @@
           self.data.draft = cm.getValue()
         }
       })
+      codemirror.on('cursorActivity', function (cm) {
+        self.$dispatch('viewPointChanged', {
+          trigger: 'cursor',
+          codemirror
+        })
+      })
       codemirror.on('scroll', function (cm) {
         if (self.data) {
           self.data.cursor = _.extend(self.data.cursor || {}, cm.getScrollInfo())
         }
+        self.$dispatch('viewPointChanged', {
+          trigger: 'scroll',
+          codemirror
+        })
       })
       codemirror.on('blur', function (cm) {
         if (self.data && cm.getCursor() !== 0) {
