@@ -1,10 +1,10 @@
 <template>
   <div class="flex v-flex fill">
     <div handle=".drag-handle" style="overflow-x: scroll">
-      <div v-for="editor in editors" class="drag-handle">
+      <div v-for="file in files" class="drag-handle">
         <div @click="switchTo($index)" :class="(selected===$index)?'tab tab-selected':'tab'">
-          {{editor.path | filename}}
-          <span v-if="editor.draft !== null && (editor.draft !== editor.content)">*</span>
+          {{file.path | filename}}
+          <span v-if="file.draft !== null && (file.draft !== file.content)">*</span>
           <span class="btn-close" @click="close($index)">X</span>
         </div>
       </div>
@@ -12,7 +12,12 @@
     <div class="flex-box">
       <div class="flex-ctrl margin-s">
         <div class="flex-content">
-          <component :is="currentView || 'Default'" :data="editors[selected]" v-ref:content></component>
+          <component :is="editor || 'Default'" :data="files[selected]" v-ref:editor></component>
+        </div>
+      </div>
+      <div v-if="previewer && files[selected] && files[selected].showPreviewer" class="flex-ctrl margin-s">
+        <div class="flex-content">
+          <component :is="previewer" :data="files[selected]" v-ref:previewer></component>
         </div>
       </div>
     </div>
@@ -22,16 +27,16 @@
 <script>
   import _ from 'lodash'
 
-  function getIndex (editors, id) {
+  function getIndex (files, id) {
     let index
     if (_.isNumber(id)) {
       index = id
     } else if (_.isString(id)) {
-      index = _.findIndex(editors, function (item) {
+      index = _.findIndex(files, function (item) {
         return item.path === id
       })
     } else if (_.isObject(id)) {
-      index = _.indexOf(editors, id)
+      index = _.indexOf(files, id)
     }
     return index
   }
@@ -62,7 +67,7 @@
   export default {
     data () {
       return {
-        editors: [],
+        files: [],
         selected: -1
       }
     },
@@ -71,20 +76,33 @@
       this.$on('save', function (data) {
         safeCall('doSave', self, data)
       })
+      this.$on('viewPointChanged', function (info) {
+        if (self.$refs.previewer) {
+          safeCall('syncViewPoint', self.$refs.previewer, info)
+        }
+      })
     },
     computed: {
-      currentView () {
-        if (this.editors.length === 0) {
+      editor () {
+        if (this.files.length === 0) {
           return 'Empty'
         } else {
-          return this.getComponentType(this.editors[this.selected].path)
+          return this.getEditorComponent(this.files[this.selected].path)
+        }
+      },
+      previewer () {
+        if (this.files.length === 0) {
+          return null
+        } else {
+          return this.getPreviewerComponent(this.files[this.selected].path)
         }
       }
     },
     methods: {
-      getComponentType () {},
+      getEditorComponent () {},
+      getPreviewerComponent () {},
       switchTo (id) {
-        const index = getIndex(this.editors, id)
+        const index = getIndex(this.files, id)
         if (index === -1) {
           return false
         }
@@ -93,10 +111,10 @@
         return true
       },
       undo () {
-        safeCall('undo', this.$refs.content)
+        safeCall('undo', this.$refs.editor)
       },
       redo () {
-        safeCall('redo', this.$refs.content)
+        safeCall('redo', this.$refs.editor)
       },
       open (path) {
         if (this.switchTo(path)) {
@@ -104,36 +122,37 @@
         }
         const self = this
         this.getContent(path, function (content) {
-          self.editors.push({
+          self.files.push({
             path: path,
             content: content,
-            draft: null
+            draft: null,
+            showPreviewer: true
           })
-          self.selected = self.editors.length - 1
+          self.selected = self.files.length - 1
           self.focus()
         })
       },
       rename (oldPath, newPath) {
-        const index = getIndex(this.editors, oldPath)
+        const index = getIndex(this.files, oldPath)
         if (index >= 0) {
-          this.editors[index].path = newPath
+          this.files[index].path = newPath
         }
       },
       close (id) {
-        const index = getIndex(this.editors, id || this.selected)
+        const index = getIndex(this.files, id || this.selected)
         if (index >= 0) {
-          this.editors.splice(index, 1)
-          if (this.selected === this.editors.length) {
-            this.selected = this.editors.length - 1
+          this.files.splice(index, 1)
+          if (this.selected === this.files.length) {
+            this.selected = this.files.length - 1
           }
           this.focus()
         }
       },
       save () {
-        safeCall('save', this.$refs.content)
+        safeCall('save', this.$refs.editor)
       },
       focus () {
-        safeCall('focus', this.$refs.content)
+        safeCall('focus', this.$refs.editor)
       }
     },
     components: {
