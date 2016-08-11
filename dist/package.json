@@ -10,7 +10,7 @@
     "q": "^2.0.3",
     "pty.js": "^0.3.1"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "name": "hugo-helper",
   "description": "This is a Hugo helper WebApp use Vue.js",
   "author": "vaniship"
