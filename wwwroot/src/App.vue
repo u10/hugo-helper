@@ -19,6 +19,7 @@
 //  import store from './vuex/store'
   import XFrame from './components/XFrame'
   import BaseCodeMirror from './components/CodeMirror'
+  import MarkdownPreviewer from './components/MarkdownPreviewer'
   import BaseEditorManager from './components/EditorManager'
   import BaseTree from './components/Tree'
   import BaseMenu from './components/Menu'
@@ -79,13 +80,18 @@
             console.log('save failed!')
           })
       },
-      getComponentType (path) {
+      getEditorComponent (path) {
         if (/\.(html|htm|xml|json|js|css|md|toml)$/i.test(path)) {
           return 'CodeMirror'
         }
       },
+      getPreviewerComponent (path) {
+        if (/\.md$/i.test(path)) {
+          return 'MarkdownPreviewer'
+        }
+      },
       getContent (path, done) {
-        if (_.isUndefined(this.getComponentType(path))) {
+        if (_.isUndefined(this.getEditorComponent(path))) {
           done('')
         } else {
           fileManager.cat(path, done)
@@ -93,7 +99,8 @@
       }
     },
     components: {
-      CodeMirror
+      CodeMirror,
+      MarkdownPreviewer
     }
   })
 
