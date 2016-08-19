@@ -1,6 +1,6 @@
 <template>
   <x-frame :gutter-size="5">
-    <menu slot="menu"></menu>
+    <menu slot="menu" event-prefix="cmd-"></menu>
     <tree class="border"
           slot="left" v-ref:tree-view></tree>
     <component slot="right"
@@ -13,7 +13,7 @@
 
 <script>
   import _ from 'lodash'
-  import {hugo} from './lib/ws'
+  import {rpc} from './lib/ws'
   import fileTypes from './lib/fileTypes'
   import fileManager from './lib/fileManager'
 //  import store from './vuex/store'
@@ -109,11 +109,15 @@
     const data = node.original
     return {
       open: {
-        label: '查看',
+        label: '打开',
         _disabled: data.type === '.'
       },
+      mkDir: {
+        label: '新建目录',
+        _disabled: data.type !== '.'
+      },
       add: {
-        label: '新建'
+        label: '新建文件'
       },
       rename: {
         label: '重命名'
@@ -131,6 +135,32 @@
           case 'open':
             this.$dispatch('cmd-file-open', evt.jstree.get_path(evt.node).join('/'))
             break
+          case 'mkDir':
+            swal({
+              title: '新建目录',
+              text: '请输入目录名:',
+              type: 'input',
+              inputType: 'text',
+              showCancelButton: true,
+              closeOnConfirm: false,
+              showLoaderOnConfirm: true
+            }, function (dirname) {
+              if (dirname !== false) {
+                const paths = evt.jstree.get_path(evt.node)
+                paths.push(dirname)
+                const path = paths.join('/')
+                fileManager.mkdir(
+                  path,
+                  function () {
+                    swal('创建成功', '目录创建成功!', 'success')
+                    self.$dispatch('cmd-refresh-tree')
+                  },
+                  function () {
+                    swal.showInputError('创建目录失败.')
+                  })
+              }
+            })
+            break
           case 'add':
             swal({
               title: '新建文件',
@@ -138,10 +168,14 @@
               type: 'input',
               inputType: 'text',
               showCancelButton: true,
-              closeOnConfirm: false
+              closeOnConfirm: false,
+              showLoaderOnConfirm: true
             }, function (filename) {
               if (filename !== false) {
                 const paths = evt.jstree.get_path(evt.node)
+                if (evt.data.type !== '.') {
+                  paths.pop()
+                }
                 paths.push(filename)
                 const path = paths.join('/')
                 fileManager.save(
@@ -170,7 +204,8 @@
                 inputType: 'text',
                 inputValue: oldFileName,
                 showCancelButton: true,
-                closeOnConfirm: false
+                closeOnConfirm: false,
+                showLoaderOnConfirm: true
               }, function (filename) {
                 if (filename !== false) {
                   const oldPath = `${path}/${oldFileName}`
@@ -200,7 +235,8 @@
                 text: `确定要删除如下文件吗(无法恢复):\n${path}`,
                 type: 'warning',
                 showCancelButton: true,
-                closeOnConfirm: false
+                closeOnConfirm: false,
+                showLoaderOnConfirm: true
               }, function () {
                 fileManager.rm(
                   path,
@@ -263,10 +299,10 @@
           {
             name: '文件',
             items: {
-              create_site: {
+              'site-create': {
                 name: '新建站点'
               },
-              open_site: {
+              'site-open': {
                 name: '打开站点'
               }
             }
@@ -274,14 +310,14 @@
           {
             name: '编辑',
             items: {
-              undo: {
+              'undo': {
                 name: '撤销'
               },
-              redo: {
+              'redo': {
                 name: '重做'
               },
               '-0': '-',
-              save: {
+              'save': {
                 name: '保存'
               }
             }
@@ -289,13 +325,13 @@
           {
             name: 'hugo',
             items: {
-              start: {
+              'hugo-start': {
                 name: '启动'
               },
-              restart: {
+              'hugo-restart': {
                 name: '重启'
               },
-              stop: {
+              'hugo-stop': {
                 name: '停止'
               }
             }
@@ -303,42 +339,12 @@
           {
             name: '帮助',
             items: {
-              about: {
+              'about': {
                 name: '关于'
               }
             }
           }
         ]
-      }
-    },
-    methods: {
-      menuClick (key) {
-        switch (key) {
-          case 'start':
-            hugo.start({
-              theme: 'hugo-vaniship-theme'
-            })
-            break
-          case 'restart':
-            hugo.restart()
-            break
-          case 'stop':
-            hugo.stop()
-            break
-          case 'undo':
-            this.getEditor().undo()
-            break
-          case 'redo':
-            this.getEditor().redo()
-            break
-          case 'save':
-            this.getEditor().save()
-            break
-          case 'about':
-            swal('Hugo Helper', 'MIT License\nv0.0.1')
-            break
-        }
-        console.log(key)
       }
     }
   })
@@ -354,18 +360,20 @@
     data () {
       return {
         rightView: '',
-        projectPath: '.'
+        sitePath: '.'
       }
     },
     methods: {
-      refreshTree (projectPath) {
-        if (projectPath && (projectPath !== this.projectPath)) {
-          this.projectPath = projectPath
-        }
+      refreshTree (sitePath, done, error) {
         const self = this
-        fileManager.ls(this.projectPath, function (data) {
+        sitePath = sitePath || this.sitePath
+        fileManager.ls(sitePath, function (data) {
+          self.sitePath = data[0].text
           self.$refs.treeView.refresh(data)
-        })
+          if (_.isFunction(done)) {
+            done()
+          }
+        }, error)
       },
       getEditor () {
         return this.$refs.rightView
@@ -374,33 +382,109 @@
     ready () {
       this.refreshTree()
       const self = this
-      hugo.addConsoleListener(function (data) {
-        self.$broadcast('console-hugo', data)
-      })
 
-      this.$on('cmd-file-open', function (path) {
-        self.rightView = 'EditorManager'
-        this.$nextTick(function () {
-          self.getEditor().open(path)
-        })
-      })
-      this.$on('cmd-file-close', function (path) {
-        self.rightView = 'EditorManager'
-        this.$nextTick(function () {
-          self.getEditor().close(path)
-        })
-      })
-      this.$on('cmd-file-rename', function (oldPath, newPath) {
-        self.rightView = 'EditorManager'
-        this.$nextTick(function () {
-          self.getEditor().rename(oldPath, newPath)
-        })
-      })
-      this.$on('cmd-file-save', function () {
-        self.getEditor().save()
-      })
-      this.$on('cmd-refresh-tree', function () {
-        self.refreshTree()
+      rpc.connect('hugo', {
+        log (rpc, data) {
+          self.$broadcast('console-hugo', data)
+        }
+      }).then(function (hugo) {
+        let handlers = {
+          'cmd-file-open' (path) {
+            self.rightView = 'EditorManager'
+            self.$nextTick(function () {
+              self.getEditor().open(path)
+            })
+          },
+          'cmd-file-close' (path) {
+            self.rightView = 'EditorManager'
+            self.$nextTick(function () {
+              self.getEditor().close(path)
+            })
+          },
+          'cmd-file-rename' (oldPath, newPath) {
+            self.rightView = 'EditorManager'
+            self.$nextTick(function () {
+              self.getEditor().rename(oldPath, newPath)
+            })
+          },
+          'cmd-file-save' () {
+            self.getEditor().save()
+          },
+          'cmd-refresh-tree' () {
+            self.refreshTree()
+          },
+          'cmd-site-create' () {
+            swal({
+              title: '新建站点',
+              text: '请输入站点路径:',
+              type: 'input',
+              inputType: 'text',
+              inputValue: self.sitePath,
+              showCancelButton: true,
+              closeOnConfirm: true
+            }, function (sitePath) {
+              if (sitePath !== false) {
+                hugo.create({
+                  path: sitePath
+                }, function (rpc) {
+                  rpc.release()
+                  self.refreshTree(sitePath)
+                  hugo.restart({
+                    path: sitePath
+                  })
+                })
+              }
+            })
+          },
+          'cmd-site-open' () {
+            swal({
+              title: '打开站点',
+              text: '请输入站点路径:',
+              type: 'input',
+              inputType: 'text',
+              inputValue: self.sitePath,
+              showCancelButton: true,
+              closeOnConfirm: false,
+              showLoaderOnConfirm: true
+            }, function (sitePath) {
+              hugo.stop()
+              if (sitePath !== false) {
+                self.refreshTree(sitePath, function () {
+                  swal('打开成功', '站点打开成功!', 'success')
+                }, function () {
+                  swal('打开失败', '站点打开失败!', 'error')
+                })
+              }
+            })
+          },
+          'cmd-hugo-start' () {
+            hugo.start({
+              path: self.sitePath,
+              theme: 'hugo-vaniship-theme'
+            })
+          },
+          'cmd-hugo-restart' () {
+            hugo.restart()
+          },
+          'cmd-hugo-stop' () {
+            hugo.stop()
+          },
+          'cmd-undo' () {
+            self.getEditor().undo()
+          },
+          'cmd-redo' () {
+            self.getEditor().redo()
+          },
+          'cmd-save' () {
+            self.getEditor().save()
+          },
+          'cmd-about' () {
+            swal('Hugo Helper', 'MIT License\nv0.0.1')
+          }
+        }
+        for (let key in handlers) {
+          self.$on(key, handlers[key])
+        }
       })
     },
     components: {
