@@ -1,12 +1,10 @@
 import io from 'socket.io-client'
-import wsTerm from './ws-term'
-import wsHugo from './ws-hugo'
+import rpc4js from 'rpc4js'
 
 const ws = io(`ws://${window.location.host}`, {
   autoConnect: false
 })
 
-ws.connect()
+export const rpc = rpc4js.bind(ws)
 
-export const hugo = wsHugo(ws)
-export const term = wsTerm(ws)
+ws.connect()
