@@ -426,8 +426,7 @@
               if (sitePath !== false) {
                 hugo.create({
                   path: sitePath
-                }, function (rpc) {
-                  rpc.release()
+                }, function () {
                   self.refreshTree(sitePath)
                   hugo.restart({
                     path: sitePath

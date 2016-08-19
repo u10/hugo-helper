@@ -61,4 +61,4 @@ module.exports = class
     return
   restart: (rpc, conf)->
     @stop()
-    @start(conf)
+    @start(null, conf)
