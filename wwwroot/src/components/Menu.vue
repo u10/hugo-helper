@@ -9,6 +9,12 @@
   import 'jquery-contextmenu'
 
   export default {
+    props: {
+      eventPrefix: {
+        type: String,
+        default: ''
+      }
+    },
     ready () {
       const self = this
       $.contextMenu({
@@ -28,6 +34,11 @@
           }
         }
       })
+    },
+    methods: {
+      menuClick (key) {
+        this.$dispatch(`${this.eventPrefix}${key}`)
+      }
     }
   }
 </script>
