@@ -1,16 +1,17 @@
 {
   "dependencies": {
-    "serve-favicon": "^2.2.1",
-    "express": "^4.13.4",
-    "body-parser": "^1.13.3",
     "argparse": "^1.0.2",
-    "lodash": "^4.13.1",
+    "body-parser": "^1.13.3",
+    "express": "^4.13.4",
     "fs-extra": "0.26.3",
-    "socket.io": "^1.3.5",
+    "lodash": "^4.13.1",
+    "pty.js": "^0.3.1",
     "q": "^2.0.3",
-    "pty.js": "^0.3.1"
+    "rpc4js": "u10/rpc4js",
+    "serve-favicon": "^2.2.1",
+    "socket.io": "^1.3.5"
   },
-  "version": "0.0.2",
+  "version": "0.0.3",
   "name": "hugo-helper",
   "description": "This is a Hugo helper WebApp use Vue.js",
   "author": "vaniship"
