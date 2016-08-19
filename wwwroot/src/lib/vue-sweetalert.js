@@ -2,7 +2,7 @@ import swal from 'sweetalert'
 import '../../../node_modules/sweetalert/dist/sweetalert.css'
 import Vue from 'vue'
 const swalContentSelector = '.sweet-alert p'
-export default function (config, cb) {
+const swalProxy = function (config, cb) {
   if (config.template || config.component) {
     let vm
     config.text = `<div style="height: ${config.contentHeight || 0}px"></div>`
@@ -43,3 +43,11 @@ export default function (config, cb) {
     swal.apply(null, arguments)
   }
 }
+for (let key in swal) {
+  if (typeof swal[key] === 'function') {
+    swalProxy[key] = function () {
+      swal[key].apply(swal, arguments)
+    }
+  }
+}
+export default swalProxy
