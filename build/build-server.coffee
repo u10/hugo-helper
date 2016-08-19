@@ -20,18 +20,6 @@ pkg[k] = pkgSrc[k] for k in [
   'main'
 ]
 
-deps = [
-  'serve-favicon'
-  'express'
-  'body-parser'
-  'argparse'
-  'lodash'
-  'fs-extra'
-  'socket.io'
-  'q'
-  'pty.js'
-]
-
 dist = paths.root('dist', true)
 node_modules = dist('node_modules', true)
 rm '-rf', dist('bin')
@@ -46,7 +34,7 @@ nodeModules =
   path: 'commonjs path'
   http: 'commonjs http'
 
-for mod in deps
+for mod of pkgSrc.dependencies
   pkg.dependencies[mod] = pkgSrc.dependencies[mod]
   nodeModules[mod] = 'commonjs ' + mod
   cp '-R', paths.root('node_modules', mod), node_modules(mod)
