@@ -22,10 +22,12 @@ pkg[k] = pkgSrc[k] for k in [
 
 dist = paths.root('dist', true)
 node_modules = dist('node_modules', true)
+rm '-rf', dist('data')
 rm '-rf', dist('bin')
 rm '-rf', dist('lib')
 rm '-rf', node_modules()
 mkdir '-p', node_modules()
+cp '-R', paths.root('data'), dist('data')
 cp '-R', paths.root('bin'), dist('bin')
 
 nodeModules =
