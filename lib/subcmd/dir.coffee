@@ -47,7 +47,7 @@ module.exports =
         fun: ->
           ret = switch cmd
             when 'list'
-              getFileTree(args.path, args.deep)
+              getFileTree(path.resolve(args.path), args.deep)
             when 'add', 'create'
               fse.mkdirsSync(args.path)
               true
