@@ -478,7 +478,7 @@
             self.getEditor().save()
           },
           'cmd-about' () {
-            swal('Hugo Helper', 'MIT License\nv0.0.3')
+            swal('Hugo Helper', 'MIT License\nv0.0.4')
           }
         }
         for (let key in handlers) {
