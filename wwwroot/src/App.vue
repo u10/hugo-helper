@@ -384,7 +384,7 @@
       const self = this
 
       rpc.connect('hugo', {
-        log (rpc, data) {
+        log (data) {
           self.$broadcast('console-hugo', data)
         }
       }).then(function (hugo) {

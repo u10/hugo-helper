@@ -7,7 +7,7 @@ hugo = null
 module.exports = class
   constructor: (@client) ->
     return
-  create: (rpc, conf, callback) ->
+  create: (conf, callback) ->
     client = @client
     task = pty.spawn paths.bin('hugo'),
       "new site #{conf.path}".split(' '),
@@ -28,7 +28,7 @@ module.exports = class
       console.log data
       return
     return
-  start: (rpc, conf) ->
+  start: (conf) ->
     client = @client
     if hugo
       client.log 'hugo already started.\n'
@@ -59,6 +59,6 @@ module.exports = class
     else
       client.log "hugo already stopped.\n"
     return
-  restart: (rpc, conf)->
+  restart: (conf)->
     @stop()
-    @start(null, conf)
+    @start(conf)
